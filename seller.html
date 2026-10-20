@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complap Market: Do'kon paneli</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
+    header { background: #1f3a5f; color: #fff; padding: 20px; text-align: center; }
+    header h1 { margin: 0; font-size: 24px; }
+    header a { color: #9cc4ff; font-size: 14px; }
+    main { max-width: 480px; margin: 20px auto; padding: 0 16px 40px; }
+    .panel { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.1); margin-bottom: 16px; }
+    h2 { margin-top: 0; font-size: 20px; }
+    input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    button { width: 100%; padding: 11px; border: 0; border-radius: 6px; background: #2b7de9; color: #fff; font-size: 15px; cursor: pointer; }
+    button:hover { background: #1c63c0; }
+    button.link { background: none; color: #2b7de9; width: auto; padding: 0; font-size: 14px; }
+    button.chiqish { background: #888; margin-top: 4px; }
+    .almashtir { text-align: center; margin-top: 12px; font-size: 14px; }
+    #xabar { padding: 10px; border-radius: 6px; margin-bottom: 16px; display: none; font-size: 14px; }
+    .ok { background: #d3f9d8; color: #1b6e2e; }
+    .xato { background: #ffe0e0; color: #a12020; }
+    .yashirin { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Complap Market: Do'kon paneli</h1>
+    <a href="index.html">&larr; Xaridor sahifasiga qaytish</a>
+  </header>
+
+  <main>
+    <div id="xabar"></div>
+
+    <!-- Kirish -->
+    <div id="kirishPanel" class="panel">
+      <h2>Kirish</h2>
+      <input id="kEmail" type="email" placeholder="Email">
+      <input id="kParol" type="password" placeholder="Parol">
+      <button onclick="kirish()">Kirish</button>
+      <div class="almashtir">Akkaunt yo'qmi? <button class="link" onclick="korsat('royxatPanel')">Ro'yxatdan o'tish</button></div>
+    </div>
+
+    <!-- Ro'yxatdan o'tish -->
+    <div id="royxatPanel" class="panel yashirin">
+      <h2>Do'kon ro'yxatdan o'tishi</h2>
+      <input id="rNom" placeholder="Do'kon nomi">
+      <input id="rShahar" placeholder="Shahar">
+      <input id="rTelefon" placeholder="Telefon (+998...)">
+      <input id="rEmail" type="email" placeholder="Email">
+      <input id="rParol" type="password" placeholder="Parol (kamida 6 ta belgi)">
+      <button onclick="royxatdanOtish()">Ro'yxatdan o'tish</button>
+      <div class="almashtir">Akkaunt bormi? <button class="link" onclick="korsat('kirishPanel')">Kirish</button></div>
+    </div>
+
+    <!-- Mahsulot qo'shish -->
+    <div id="mahsulotPanel" class="panel yashirin">
+      <h2>Yangi mahsulot qo'shish</h2>
+      <input id="mNom" placeholder="Nomi (masalan: Lenovo LOQ 15)">
+      <input id="mNarx" type="number" placeholder="Narxi (so'm)">
+      <input id="mProtsessor" placeholder="Protsessor (Intel Core i5-12450H)">
+      <input id="mVideo" placeholder="Video karta (RTX 3050)">
+      <input id="mRam" type="number" placeholder="RAM (GB)">
+      <input id="mSsd" type="number" placeholder="SSD (GB)">
+      <input id="mRasm" placeholder="Rasm havolasi (ixtiyoriy)">
+      <button onclick="mahsulotQoshish()">Qo'shish</button>
+      <button class="chiqish" onclick="chiqish()">Chiqish</button>
+    </div>
+  </main>
+
+  <script>
+    const API = "http://127.0.0.1:8000";
+    let token = sessionStorage.getItem("token");
+
+    function qiymat(id) { return document.getElementById(id).value.trim(); }
+
+    function xabarKorsat(matn, yaxshi) {
+      const el = document.getElementById("xabar");
+      el.textContent = matn;
+      el.className = yaxshi ? "ok" : "xato";
+      el.style.display = "block";
+    }
+
+    function korsat(panelId) {
+      ["kirishPanel", "royxatPanel", "mahsulotPanel"].forEach(id => {
+        document.getElementById(id).classList.toggle("yashirin", id !== panelId);
+      });
+      document.getElementById("xabar").style.display = "none";
+    }
+
+    // Server xatolarini tushunarli matnga aylantiradi
+    function xatoMatni(malumot) {
+      if (typeof malumot.detail === "string") return malumot.detail;
+      return "Ma'lumotlarni to'liq va to'g'ri kiriting.";
+    }
+
+    async function royxatdanOtish() {
+      const body = {
+        nom: qiymat("rNom"), shahar: qiymat("rShahar"), telefon: qiymat("rTelefon"),
+        email: qiymat("rEmail"), parol: qiymat("rParol"),
+      };
+      try {
+        const javob = await fetch(`${API}/seller/register`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        });
+        const malumot = await javob.json();
+        if (!javob.ok) return xabarKorsat(xatoMatni(malumot), false);
+        korsat("kirishPanel");
+        xabarKorsat("Ro'yxatdan o'tdingiz! Endi kiring.", true);
+      } catch { xabarKorsat("Serverga ulanib bo'lmadi.", false); }
+    }
+
+    async function kirish() {
+      const body = { email: qiymat("kEmail"), parol: qiymat("kParol") };
+      try {
+        const javob = await fetch(`${API}/seller/login`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        });
+        const malumot = await javob.json();
+        if (!javob.ok) return xabarKorsat(xatoMatni(malumot), false);
+        token = malumot.access_token;
+        sessionStorage.setItem("token", token);
+        korsat("mahsulotPanel");
+        xabarKorsat("Xush kelibsiz!", true);
+      } catch { xabarKorsat("Serverga ulanib bo'lmadi.", false); }
+    }
+
+    async function mahsulotQoshish() {
+      const body = {
+        nom: qiymat("mNom"), narx: Number(qiymat("mNarx")),
+        protsessor: qiymat("mProtsessor"), video_karta: qiymat("mVideo"),
+        ram_gb: Number(qiymat("mRam")), ssd_gb: Number(qiymat("mSsd")),
+        rasm_url: qiymat("mRasm") || null,
+      };
+      try {
+        const javob = await fetch(`${API}/seller/products`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(body),
+        });
+        const malumot = await javob.json();
+        if (javob.status === 401) { chiqish(); return xabarKorsat("Qaytadan kiring.", false); }
+        if (!javob.ok) return xabarKorsat(xatoMatni(malumot), false);
+        xabarKorsat("Mahsulot qo'shildi!", true);
+        ["mNom", "mNarx", "mProtsessor", "mVideo", "mRam", "mSsd", "mRasm"].forEach(id => {
+          document.getElementById(id).value = "";
+        });
+      } catch { xabarKorsat("Serverga ulanib bo'lmadi.", false); }
+    }
+
+    function chiqish() {
+      token = null;
+      sessionStorage.removeItem("token");
+      korsat("kirishPanel");
+    }
+
+    // Sahifa ochilganda token bo'lsa, to'g'ridan-to'g'ri mahsulot paneli ochiladi
+    korsat(token ? "mahsulotPanel" : "kirishPanel");
+  </script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complap Market</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
+    header { background: #1f3a5f; color: #fff; padding: 20px; text-align: center; }
+    header h1 { margin: 0; font-size: 26px; }
+    header p { margin: 4px 0 0; opacity: .8; }
+    .filters { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; max-width: 1100px; margin: 0 auto; }
+    .filters input { flex: 1 1 150px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    .filters button { padding: 10px 20px; border: 0; border-radius: 6px; background: #2b7de9; color: #fff; font-size: 14px; cursor: pointer; }
+    .filters button:hover { background: #1c63c0; }
+    #natija { max-width: 1100px; margin: 0 auto; padding: 0 16px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+    .karta { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    .karta h3 { margin: 0 0 8px; font-size: 17px; }
+    .narx { color: #d6336c; font-weight: bold; font-size: 18px; margin-bottom: 8px; }
+    .karta p { margin: 3px 0; font-size: 14px; color: #555; }
+    .belgi { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 6px; }
+    .arzon { background: #d3f9d8; color: #1b6e2e; }
+    .adolatli { background: #e7f0ff; color: #1c4f9c; }
+    .qimmat { background: #ffe0e0; color: #a12020; }
+    .bashorat { font-size: 12px; color: #888; margin-top: 2px; }
+    .oxshash-btn { margin-top: 10px; width: 100%; padding: 8px; border: 1px solid #2b7de9; border-radius: 6px; background: #fff; color: #2b7de9; font-size: 13px; cursor: pointer; }
+    .oxshash-btn:hover { background: #e7f0ff; }
+    .oxshash-item { margin-top: 8px; padding: 8px; background: #f4f6f8; border-radius: 6px; font-size: 13px; }
+    .oxshash-item small { color: #666; }
+    .dokon { margin-top: 10px; padding-top: 8px; border-top: 1px solid #eee; font-size: 13px; color: #888; }
+    #xabar { text-align: center; padding: 20px; color: #666; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Complap Market</h1>
+    <p>computers &amp; laptops</p>
+  </header>
+
+  <div class="filters">
+    <input id="q" placeholder="Nomi (masalan: Lenovo)">
+    <input id="protsessor" placeholder="Protsessor (i5, Ryzen)">
+    <input id="video_karta" placeholder="Video karta (RTX 4060)">
+    <input id="min_narx" type="number" placeholder="Narx dan (so'm)">
+    <input id="max_narx" type="number" placeholder="Narx gacha (so'm)">
+    <button onclick="qidirish()">Qidirish</button>
+  </div>
+
+  <div id="xabar"></div>
+  <div id="natija"></div>
+
+  <script>
+    const API = "http://127.0.0.1:8000";
+
+    async function qidirish() {
+      const params = new URLSearchParams();
+      ["q", "protsessor", "video_karta", "min_narx", "max_narx"].forEach(id => {
+        const qiymat = document.getElementById(id).value.trim();
+        if (qiymat) params.append(id, qiymat);
+      });
+
+      const xabar = document.getElementById("xabar");
+      const natija = document.getElementById("natija");
+      xabar.textContent = "Yuklanmoqda...";
+      natija.innerHTML = "";
+
+      try {
+        const javob = await fetch(`${API}/products?${params}`);
+        const mahsulotlar = await javob.json();
+
+        if (mahsulotlar.length === 0) {
+          xabar.textContent = "Hech narsa topilmadi.";
+          return;
+        }
+        xabar.textContent = `${mahsulotlar.length} ta mahsulot topildi`;
+
+        natija.innerHTML = mahsulotlar.map(m => `
+          <div class="karta">
+            ${m.baho ? `<span class="belgi ${m.baho}">${{arzon: "Arzon", adolatli: "Adolatli narx", qimmat: "Qimmat"}[m.baho]}</span>` : ""}
+            <h3>${m.nom}</h3>
+            <div class="narx">${Number(m.narx).toLocaleString("ru-RU")} so'm</div>
+            ${m.bashorat_narx ? `<div class="bashorat">AI bahosi: ~${Number(m.bashorat_narx).toLocaleString("ru-RU")} so'm</div>` : ""}
+            <p>Protsessor: ${m.protsessor}</p>
+            <p>Video karta: ${m.video_karta}</p>
+            <p>RAM: ${m.ram_gb} GB &nbsp;|&nbsp; SSD: ${m.ssd_gb} GB</p>
+            <div class="dokon">${m.dokon}, ${m.shahar}</div>
+            <button class="oxshash-btn" onclick="oxshashKorsat(${m.id})">O'xshash mahsulotlar</button>
+            <div id="sim-${m.id}"></div>
+          </div>
+        `).join("");
+      } catch (xato) {
+        xabar.textContent = "Serverga ulanib bo'lmadi. Uvicorn ishlayaptimi?";
+      }
+    }
+
+    // "O'xshash mahsulotlar" tugmasi: AI tavsiyasini yuklaydi (qayta bosilsa yopiladi)
+    async function oxshashKorsat(id) {
+      const joy = document.getElementById(`sim-${id}`);
+      if (joy.innerHTML) { joy.innerHTML = ""; return; }
+      joy.textContent = "Yuklanmoqda...";
+      try {
+        const javob = await fetch(`${API}/ai/similar/${id}?limit=4`);
+        const royxat = await javob.json();
+        joy.innerHTML = royxat.map(x => `
+          <div class="oxshash-item">
+            <b>${x.nom}</b>: ${Number(x.narx).toLocaleString("ru-RU")} so'm<br>
+            <small>${x.protsessor}, ${x.video_karta}, ${x.ram_gb} GB RAM, ${x.ssd_gb} GB SSD<br>
+            ${x.dokon}, ${x.shahar} (${x.oxshashlik}% o'xshash)</small>
+          </div>
+        `).join("");
+      } catch {
+        joy.textContent = "Tavsiyani yuklab bo'lmadi.";
+      }
+    }
+
+    // Sahifa ochilganda hamma mahsulotni ko'rsatadi
+    qidirish();
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Maxfiy ma'lumotlar (GitHub'ga yuklanmasin!)
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Model fayli (python train_model.py bilan qayta yaratiladi)
+price_model.joblib
+
+# Tahrirlagich
+.vscode/
